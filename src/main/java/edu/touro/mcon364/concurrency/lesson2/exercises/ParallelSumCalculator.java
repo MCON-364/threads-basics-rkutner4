@@ -41,19 +41,43 @@ public class ParallelSumCalculator {
             throws InterruptedException, ExecutionException {
 
         // TODO: create a thread pool with the right number of workers
+        ExecutorService executor = Executors.newFixedThreadPool(workers);
 
         // TODO: divide numbers into roughly equal slices — one slice per worker
         //       Think: how do you calculate the slice size without losing
         //       the last few elements when the list doesn't divide evenly?
-
+        int n = numbers.size();
+        int slice = (int) Math.ceil(n / (double) workers);
         // TODO: submit each slice as a task that returns its partial sum.
         //       Collect the handles to the results — but do NOT ask for the
         //       answers yet, so that all slices run at the same time.
         List<Future<Long>> futures = new ArrayList<>();
+        for (int i = 0; i < workers; i++) {
+
+            int start = i * slice;
+            int end = Math.min(start + slice, numbers.size());
+
+            if (start >= numbers.size()) break;
+
+            Callable<Long> task = () -> {
+                long result = 0;
+                for (int j = start; j < end; j++) {
+                    result += numbers.get(j);
+                }
+                return result;
+            };
+
+            futures.add(executor.submit(task));
+        }
 
         // TODO: now that all slices are running, collect each partial sum
         //       and add it to the total
         long total = 0;
+
+        for (Future<Long> future : futures) {
+            total += future.get();
+        }
+        executor.shutdown();
 
         // TODO: release pool resources before returning
         return total;
